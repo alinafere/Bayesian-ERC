@@ -1,3 +1,5 @@
+### Bayesian ERC
+## Alina Ferecatu - July 2018
 
 #### SIMULATION DATASET
 set.seed(66)
@@ -261,50 +263,5 @@ cat(" Betadraws obtained from random-walk chain ",fill=TRUE)
      par(mfrow=c(2,2))
      for (i in 1:nvar){
      acf(out_agg$betadraw[,i])
-     }
-
-## the likelihood for one individual: run this line by line
-## choice matrix for A player's offer over 10 rounds of the game
-X=ldata[[1]]$X
-## B player's accept/reject decision over the 10 rounds of the game
-y=ldata[[1]]$y
-## parameters
-beta=ldata[[1]]$beta
-erc.lk<- function (beta, X, y)
-     { 	
-       b=exp(beta[1])
-       taualpha=exp(beta[2])
-       taubeta=exp(beta[3])
-       tau1=exp(beta[4])
-       
-       # utility of B if accept
-       # initialize the utilities
-       UBAcc=UAAcc=rep(0, noffer)
-       UBAcc[Sigma<=gamma]=c*(Sigma[Sigma<=gamma]-(b/2)*((Sigma[Sigma<=gamma]-gamma)^2)) 
-       UBAcc[Sigma>gamma]=c*Sigma[Sigma>gamma]
-       #utility of A/ B if reject
-       UARejUBRej=rep(0, noffer)
-       
-       #utility of A if B accepts
-       UAAcc[Sigma>=gamma]=c*((1-Sigma[Sigma>=gamma])-(b/2)*(((1-Sigma[Sigma>=gamma])-gamma)^2)) 
-       UAAcc[Sigma<gamma]=c*(1-Sigma[Sigma<gamma])
-       
-       #initialize probability matrices
-       PbB=matrix(rep(0, noffer*nrounds), ncol=noffer)
-       ExUAAcc=matrix(rep(0, noffer*nrounds), ncol=noffer)
-       PbA=matrix(rep(0, noffer*nrounds), ncol=noffer)
-       # compute probability matrices for the probability of B to accept, expected value of A in case B accepts and the probability of A to make an offer of sigma
-       PbB=exp((taubeta*(1+tau1*(rounds-1)))%*%t(UBAcc))/(1+exp((taubeta*(1+tau1*(rounds-1)))%*%t(UBAcc)))
-       #A's expected utility if A offers X to B
-       ExUAAcc=t(UAAcc*t(PbB))
-       #Pb of A to offer X
-       PbA=(exp(taualpha*(1+tau1*(rounds-1))*ExUAAcc))/rowSums(exp((taualpha*(1+tau1*(rounds-1)))*ExUAAcc))
-       ## probability of either reject or accept, computed by taking into consideration the response of player B
-       PbBR=PbB
-       y1=matrix(rep(y, noffer), ncol=noffer)
-       PbBR[X==1&y1==0]=1-PbB[X==1&y1==0]
-       
-       logl=sum(log(rowSums(PbA*PbBR*X)))
-       return(logl)
      }
      
