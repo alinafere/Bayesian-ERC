@@ -1,5 +1,5 @@
 ### Bayesian ERC
-## Alina Ferecatu - July 2018
+## Alina Ferecatu - August 2018
 
 #### SIMULATION DATASET
 set.seed(66)
