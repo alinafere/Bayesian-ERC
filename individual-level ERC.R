@@ -1,3 +1,5 @@
+## Alina Ferecatu
+## August 2018
 
 ## Use the simulated data from the aggregate estimation
 
