@@ -30,11 +30,11 @@ erc.lk<- function (beta, X, y)
   PbA=matrix(rep(0, noffer*nround), ncol=noffer)
   
   # compute probability matrices for the probability of B to accept, expected value of A in case B accepts and the probability of A to make an offer of sigma  
-  PbB=exp((taubeta*(1+tau1*(ldata[[1]]$Round-1)))%*%t(UBAcc))/(1+exp((taubeta*(1+tau1*(ldata[[1]]$Round-1)))%*%t(UBAcc)))
+  PbB=exp((taubeta*(1+tau1*(round-1)))%*%t(UBAcc))/(1+exp((taubeta*(1+tau1*(round-1)))%*%t(UBAcc)))
   #A's expected utility if A offers X to B
   ExUAAcc=t(UAAcc*t(PbB))
   #Pb of A to offer X
-  PbA=(exp(taualpha*(1+tau1*(ldata[[1]]$Round-1))*ExUAAcc))/rowSums(exp((taualpha*(1+tau1*(ldata[[1]]$Round-1)))*ExUAAcc))
+  PbA=(exp(taualpha*(1+tau1*(round-1))*ExUAAcc))/rowSums(exp((taualpha*(1+tau1*(round-1)))*ExUAAcc))
   
   ## probability of either reject or accept, computed by taking into consideration the response of player B
   PbBR=PbB
@@ -66,7 +66,6 @@ myhierERC<-function (Data, Prior, Mcmc)
 	burnin = Mcmc$burnin
 	R = Mcmc$R
 	
-
     Vbetadraw = matrix(double(floor(R/keep) * nvar * nvar), ncol = nvar * nvar)
     ## saved draws for the respondent-level coefficients
     betadraw = array(double(floor(R/keep) * nlgt * nvar), dim = c(nlgt, nvar, floor(R/keep)))
@@ -84,10 +83,8 @@ myhierERC<-function (Data, Prior, Mcmc)
     llike = array(0, dim = c(R/keep))  
     itime = proc.time()[3]
     cat("MCMC Iteration (est time to end - min)", fill = TRUE)
- 
-  #########################
-	## Start the MCMC chain ##
-  ##########################  
+
+	## Start the MCMC chain 
     for (j in 1:R) {
         rej = 0
         logl = 0    
@@ -102,7 +99,7 @@ myhierERC<-function (Data, Prior, Mcmc)
             lognew = erc.lk(betan, lgtdata[[i]]$X, lgtdata[[i]]$y)
             logold = erc.lk(betad, lgtdata[[i]]$X, lgtdata[[i]]$y)
             ### the contribution of density from the distribution of heterogeneity
-            logknew = -0.5 * (t(betan) - Z[i, ] %*% oldDelta) %*%oldVbetai %*% (t(t(betan)) - t(Z[i, ] %*% oldDelta))
+            logknew = -0.5 * (t(betan) - Z[i, ] %*% oldDelta) %*%oldVbetai %*% (betan - t(Z[i, ] %*% oldDelta))
             logkold = -0.5 * (t(betad) - Z[i, ] %*% oldDelta) %*%oldVbetai %*% (betad - t(Z[i, ] %*% oldDelta))
             ## compute alpha, the acceptance pb for the MH algorithm
             alpha = exp(lognew + logknew - logold - logkold)
@@ -145,15 +142,14 @@ myhierERC<-function (Data, Prior, Mcmc)
             reject[mkeep] = rej/nlgt
         }
     }
-    ### variables that monitor the speed of the chain, write time of completion information on the screen
+ 
     ctime = proc.time()[3]
     cat(" Total Time Elapsed: ", round((ctime - itime)/60, 2), 
         fill = TRUE)
     attributes(betadraw)$class = c("bayesm.hcoef")
     attributes(Deltadraw)$class = c("bayesm.mat", "mcmc")
     attributes(Deltadraw)$mcpar = c(1, R, keep)
-    attributes(Vbetadraw)$class = c("bayesm.var", "bayesm.mat", 
-        "mcmc")
+    attributes(Vbetadraw)$class = c("bayesm.var", "bayesm.mat",  "mcmc")
     ### the variables to return 
     attributes(Vbetadraw)$mcpar = c(1, R, keep)
     return(list(betadraw = betadraw, Vbetadraw = Vbetadraw, Deltadraw = Deltadraw, llike = llike, reject = reject))
@@ -163,7 +159,7 @@ myhierERC<-function (Data, Prior, Mcmc)
 noffer=11
 nround=10
 nvar=4                    ## number of variables
-nlgt=length()                      ## number of cross-sectional units
+nlgt=length(ldata)             ## number of cross-sectional units
 nz=1                      ## number of regressors in mixing distribution
 nu=nvar+2*(length(ldata[[1]]$Response)) #nvar+3
 R=10000
@@ -171,24 +167,11 @@ R=10000
 keep=1
 burnin=5000
 
-ercdata=NULL
-### define the X and Y of the model. 
-for (i in 1:nhh) 
-{
-y=as.matrix(ldata[[i]]$Choice)
-X=as.vector(ldata[[i]]$Response)
-Buyer=hh[i]
-## try sensityvity for starting values at .5 for p
-beta=rep(-0.1, nvar)
-###Initialize the erc parameters
-ercdata[[i]]=list(y=y, X=X, Buyer=Buyer, beta=beta)
-}
-
 ## the random effects, a vector of ones
 Z=as.matrix(rep(1, nhh))
 
 ## run the MCMC chain
-out=myhierERC(Data=list(lgtdata=ercdata, Z=Z),Mcmc=list(R=R, keep=keep, burnin=burnin, sbeta=.3), 
+out=myhierERC(Data=list(lgtdata=ldata, Z=Z),Mcmc=list(R=R, keep=keep, burnin=burnin, sbeta=.3), 
 	      Prior=list( nu=nu, V=nu * diag(rep(0.1, nvar)), Deltabar=matrix(rep(0, nz * nvar), ncol = nvar), ADelta=0.01*diag(nz)))
 						
 ## sumarize the effects of demographics
@@ -202,5 +185,6 @@ plot(Delta)
 ### sumarize the variance-covariance mattrix of the random effects.
 cat("Summary of Vbeta draws",fill=TRUE)
 summary(out$Vbetadraw)
+summary(out$llike)
 
 
